@@ -1,0 +1,31 @@
+<?php
+
+$MESS['EASYBUSYCHATS_OPTIONS_TAB'] = 'Настройки';
+$MESS['EASYBUSYCHATS_OPTIONS_TITLE'] = 'Настройки EasyBusy Chats';
+$MESS['EASYBUSYCHATS_OPTIONS_PLUGIN_URL'] = 'URL интерфейса EasyBusy Chats';
+$MESS['EASYBUSYCHATS_OPTIONS_PLUGIN_ORIGIN'] = 'Разрешённый origin интерфейса';
+$MESS['EASYBUSYCHATS_OPTIONS_DEFAULT_LANGUAGE'] = 'Язык по умолчанию';
+$MESS['EASYBUSYCHATS_OPTIONS_CONTACT_ENABLED'] = 'Включить интеграцию с контактами';
+$MESS['EASYBUSYCHATS_OPTIONS_DEAL_ENABLED'] = 'Включить интеграцию со сделками';
+$MESS['EASYBUSYCHATS_OPTIONS_DEBUG_ENABLED'] = 'Включить диагностическое логирование';
+$MESS['EASYBUSYCHATS_OPTIONS_REQUEST_TIMEOUT'] = 'Тайм-аут запросов, мс';
+$MESS['EASYBUSYCHATS_OPTIONS_API_BASE_URL'] = 'Базовый URL EasyBusy API';
+$MESS['EASYBUSYCHATS_OPTIONS_COMPANY_NAME'] = 'Название компании EasyBusy';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_AUTH_TITLE'] = 'Авторизация Bitrix24 Box';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_CLIENT_ID'] = 'EasyBusy Client ID';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_CLIENT_SECRET'] = 'EasyBusy Client Secret';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_SECRET_SAVED'] = 'Секрет уже сохранён в зашифрованном виде. Оставьте поле пустым, чтобы не менять его.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_PLUGIN_URL'] = 'Указан некорректный URL интерфейса.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_PLUGIN_ORIGIN'] = 'Указан некорректный origin интерфейса.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_LANGUAGE'] = 'Указан неподдерживаемый язык.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_TIMEOUT'] = 'Тайм-аут должен быть от 3000 до 60000 мс.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_API_URL'] = 'EasyBusy API должен использовать корректный HTTPS URL.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_COMPANY_NAME'] = 'Укажите корректное название компании EasyBusy.';
+$MESS['EASYBUSYCHATS_OPTIONS_SAVED'] = 'Настройки сохранены.';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_TAB'] = 'Доступ';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_TITLE'] = 'Доступ пользователей к EasyBusy Chats';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_DESCRIPTION'] = 'Отметьте сотрудников, которым разрешён доступ. Модуль добавляет их в группу «EasyBusy Chats: Пользователи». Администраторы имеют доступ всегда.';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ALLOWED'] = 'Доступ';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_USER'] = 'Пользователь';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN'] = 'администратор';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN_ALWAYS'] = 'Администраторы всегда имеют доступ';

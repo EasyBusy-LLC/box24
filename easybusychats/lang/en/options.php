@@ -1,0 +1,31 @@
+<?php
+
+$MESS['EASYBUSYCHATS_OPTIONS_TAB'] = 'Settings';
+$MESS['EASYBUSYCHATS_OPTIONS_TITLE'] = 'EasyBusy Chats settings';
+$MESS['EASYBUSYCHATS_OPTIONS_PLUGIN_URL'] = 'EasyBusy Chats UI URL';
+$MESS['EASYBUSYCHATS_OPTIONS_PLUGIN_ORIGIN'] = 'Allowed UI origin';
+$MESS['EASYBUSYCHATS_OPTIONS_DEFAULT_LANGUAGE'] = 'Default language';
+$MESS['EASYBUSYCHATS_OPTIONS_CONTACT_ENABLED'] = 'Enable contact integration';
+$MESS['EASYBUSYCHATS_OPTIONS_DEAL_ENABLED'] = 'Enable deal integration';
+$MESS['EASYBUSYCHATS_OPTIONS_DEBUG_ENABLED'] = 'Enable diagnostic logging';
+$MESS['EASYBUSYCHATS_OPTIONS_REQUEST_TIMEOUT'] = 'Request timeout, ms';
+$MESS['EASYBUSYCHATS_OPTIONS_API_BASE_URL'] = 'EasyBusy API base URL';
+$MESS['EASYBUSYCHATS_OPTIONS_COMPANY_NAME'] = 'EasyBusy company name';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_AUTH_TITLE'] = 'Bitrix24 Box authentication';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_CLIENT_ID'] = 'EasyBusy Client ID';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_CLIENT_SECRET'] = 'EasyBusy Client Secret';
+$MESS['EASYBUSYCHATS_OPTIONS_BOX_SECRET_SAVED'] = 'The secret is stored encrypted. Leave this field empty to keep it unchanged.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_PLUGIN_URL'] = 'The UI URL is invalid.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_PLUGIN_ORIGIN'] = 'The UI origin is invalid.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_LANGUAGE'] = 'The selected language is not supported.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_TIMEOUT'] = 'Timeout must be between 3000 and 60000 ms.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_API_URL'] = 'EasyBusy API must use a valid HTTPS URL.';
+$MESS['EASYBUSYCHATS_OPTIONS_INVALID_COMPANY_NAME'] = 'Enter a valid EasyBusy company name.';
+$MESS['EASYBUSYCHATS_OPTIONS_SAVED'] = 'Settings saved.';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_TAB'] = 'Access';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_TITLE'] = 'User access to EasyBusy Chats';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_DESCRIPTION'] = 'Select employees who may use EasyBusy Chats. The module adds them to the “EasyBusy Chats: Users” group. Administrators always have access.';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ALLOWED'] = 'Access';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_USER'] = 'User';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN'] = 'administrator';
+$MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN_ALWAYS'] = 'Administrators always have access';
