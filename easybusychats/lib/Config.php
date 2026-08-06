@@ -21,14 +21,14 @@ final class Config
     public static function getDefaults(): array
     {
         return [
-            self::OPTION_PLUGIN_URL => 'https://plugins.dev.easy-busy.chat/bitrix24/',
-            self::OPTION_PLUGIN_ORIGIN => 'https://plugins.dev.easy-busy.chat',
+            self::OPTION_PLUGIN_URL => 'https://plugins.easy-busy.chat/bitrix24/',
+            self::OPTION_PLUGIN_ORIGIN => 'https://plugins.easy-busy.chat',
             self::OPTION_DEFAULT_LANGUAGE => 'ru-RU',
             self::OPTION_CONTACT_ENABLED => 'Y',
             self::OPTION_DEAL_ENABLED => 'Y',
             self::OPTION_DEBUG_ENABLED => 'N',
             self::OPTION_REQUEST_TIMEOUT => '15000',
-            self::OPTION_API_BASE_URL => 'https://api.dev.easy-busy.chat/chats/v1',
+            self::OPTION_API_BASE_URL => 'https://api.easy-busy.chat/chats/v1',
             self::OPTION_COMPANY_NAME => 'abe',
         ];
     }
