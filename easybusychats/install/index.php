@@ -1,6 +1,7 @@
 <?php
 
 use Bitrix\Main\Localization\Loc;
+use Bitrix\Main\Loader;
 use Bitrix\Main\ModuleManager;
 use EasyBusyChats\Installer\DatabaseInstaller;
 use EasyBusyChats\Installer\AccessGroupInstaller;
@@ -9,6 +10,8 @@ use EasyBusyChats\Installer\LeftMenuInstaller;
 use EasyBusyChats\Installer\OptionInstaller;
 
 Loc::loadMessages(__FILE__);
+Loader::registerNamespace('EasyBusyChats', dirname(__DIR__) . '/lib');
+
 require_once __DIR__ . '/../lib/Config.php';
 require_once __DIR__ . '/../lib/Model/ChatContactTable.php';
 require_once __DIR__ . '/../lib/Model/ChatDealTable.php';
