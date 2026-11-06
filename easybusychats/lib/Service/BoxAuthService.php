@@ -48,9 +48,7 @@ final class BoxAuthService
             'accessToken' => $session['accessToken'],
             'apiBaseUrl' => Config::getEasyBusyApiBaseUrl(),
             'companyId' => $session['companyId'],
-            'companyName' => $session['companyName'] !== ''
-                ? $session['companyName']
-                : Config::getEasyBusyCompanyName(),
+            'companyName' => $session['companyName'],
             'expiresIn' => $session['expiresIn'],
             'authMode' => 'box-jwt',
         ];

@@ -16,7 +16,6 @@ final class Config
     public const OPTION_DEBUG_ENABLED = 'debug_enabled';
     public const OPTION_REQUEST_TIMEOUT = 'request_timeout';
     public const OPTION_API_BASE_URL = 'api_base_url';
-    public const OPTION_COMPANY_NAME = 'company_name';
 
     public static function getDefaults(): array
     {
@@ -29,7 +28,6 @@ final class Config
             self::OPTION_DEBUG_ENABLED => 'N',
             self::OPTION_REQUEST_TIMEOUT => '15000',
             self::OPTION_API_BASE_URL => 'https://api.easy-busy.chat/chats/v1',
-            self::OPTION_COMPANY_NAME => 'abe',
         ];
     }
 
@@ -131,17 +129,6 @@ final class Config
         }
 
         return $url;
-    }
-
-    public static function getEasyBusyCompanyName(): string
-    {
-        $name = trim(Option::get(
-            self::MODULE_ID,
-            self::OPTION_COMPANY_NAME,
-            self::getDefaults()[self::OPTION_COMPANY_NAME]
-        ));
-
-        return $name !== '' ? mb_substr($name, 0, 255) : 'abe';
     }
 
     public static function isValidEasyBusyApiBaseUrl(string $url): bool

@@ -18,7 +18,7 @@ use EasyBusyChats\Service\AccessPolicyService;
 final class Api extends Engine\Controller
 {
     private const MUTATING_ACTIONS = [
-        'createContact', 'linkContact', 'unlinkContact',
+        'createContact', 'linkContact', 'unlinkContact', 'linkNewChat',
         'createDeal', 'linkDeal', 'unlinkDeal',
         'getRuntimeBootstrap',
         'resolveContactByPhone', 'selectContactByPhone',
@@ -240,6 +240,7 @@ final class Api extends Engine\Controller
             $contactId = ChatValidator::positiveId($contactId, 'contactId');
             $crm = $this->crm();
             $crm->getPermissions()->assertCanReadContact($contactId);
+            $companyId = (string)($this->auth()->getStatus()['clientId'] ?? '');
             $canUnlink = true;
             try {
                 $crm->getPermissions()->assertCanUpdateContact($contactId);
@@ -249,11 +250,59 @@ final class Api extends Engine\Controller
 
             return [
                 'items' => array_map(
-                    fn(array $item): array => $this->formatChatMapping($item, $canUnlink),
+                    fn(array $item): array => $this->formatChatMapping($item, $canUnlink, $companyId),
                     $this->mappings()->getContactChats($this->siteId(), $contactId)
                 ),
             ];
         });
+    }
+
+    /** Prefill for "New chat" in a CRM card: the contact, or the deal's primary contact. */
+    public function getNewChatPresetAction(int $contactId = 0, int $dealId = 0): ?array
+    {
+        return $this->execute('getNewChatPreset', function () use ($contactId, $dealId): array {
+            if ($dealId > 0) {
+                $this->assertDealEnabled();
+                $preset = $this->crm()->getNewChatPreset('deal', $dealId);
+            } else {
+                $this->assertContactEnabled();
+                $preset = $this->crm()->getNewChatPreset('contact', ChatValidator::positiveId($contactId, 'contactId'));
+            }
+
+            return ['preset' => $preset];
+        });
+    }
+
+    /**
+     * Links a chat made with "New chat" in a CRM card to that card's record. For a deal the chat is
+     * linked to the deal's primary contact first, because deal links require a contact link.
+     */
+    public function linkNewChatAction(array $chat = [], int $contactId = 0, int $dealId = 0, bool $replace = false): ?array
+    {
+        return $this->execute('linkNewChat', function () use ($chat, $contactId, $dealId, $replace): array {
+            $normalized = ChatValidator::normalize($chat);
+            $crm = $this->crm();
+            if ($dealId > 0) {
+                $this->assertDealEnabled();
+                $crm->getPermissions()->assertCanUpdateDeal($dealId);
+                $contactId = $crm->getDealPrimaryContactId($dealId);
+                if ($contactId <= 0) {
+                    throw new IntegrationException('The deal has no contact to link the chat to.', 'DEAL_HAS_NO_CONTACT');
+                }
+            } else {
+                $this->assertContactEnabled();
+                $contactId = ChatValidator::positiveId($contactId, 'contactId');
+            }
+            $crm->getPermissions()->assertCanUpdateContact($contactId);
+            $crm->getContact($contactId);
+            // An existing chat may come back for a known phone; it moves here only when the user confirmed ($replace).
+            $this->mappings()->linkContact($this->siteId(), $normalized, $contactId, $this->userId(), $replace);
+            if ($dealId > 0) {
+                $this->mappings()->linkDeal($this->siteId(), $normalized, $dealId, $this->userId());
+            }
+
+            return ['context' => $this->buildContext($normalized)];
+        }, $chat);
     }
 
     public function getDealChatsAction(int $dealId = 0): ?array
@@ -262,6 +311,7 @@ final class Api extends Engine\Controller
             $dealId = ChatValidator::positiveId($dealId, 'dealId');
             $crm = $this->crm();
             $crm->getPermissions()->assertCanReadDeal($dealId);
+            $companyId = (string)($this->auth()->getStatus()['clientId'] ?? '');
             $canUnlink = true;
             try {
                 $crm->getPermissions()->assertCanUpdateDeal($dealId);
@@ -271,7 +321,7 @@ final class Api extends Engine\Controller
 
             return [
                 'items' => array_map(
-                    fn(array $item): array => $this->formatChatMapping($item, $canUnlink),
+                    fn(array $item): array => $this->formatChatMapping($item, $canUnlink, $companyId),
                     $this->mappings()->getDealChats($this->siteId(), $dealId)
                 ),
             ];
@@ -330,7 +380,7 @@ final class Api extends Engine\Controller
         return $mapping;
     }
 
-    private function formatChatMapping(array $item, bool $canUnlink): array
+    private function formatChatMapping(array $item, bool $canUnlink, string $companyId): array
     {
         return [
             'easyBusyCompanyId' => (string)$item['EASYBUSY_COMPANY_ID'],
@@ -344,6 +394,7 @@ final class Api extends Engine\Controller
                 ? $item['LAST_MESSAGE_AT']->format(DATE_ATOM)
                 : null,
             'canUnlink' => $canUnlink,
+            'linkBroken' => $companyId !== '' && (string)$item['EASYBUSY_COMPANY_ID'] !== $companyId,
             'linkSource' => (string)($item['LINK_SOURCE'] ?? 'manual'),
         ];
     }

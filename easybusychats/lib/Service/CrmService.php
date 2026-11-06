@@ -43,6 +43,76 @@ final class CrmService
         return $this->formatContact($row);
     }
 
+    /**
+     * Prefill for the plugin's create-contact dialog: the contact itself, or the deal's primary contact.
+     * Returns [] when there is no readable contact.
+     */
+    public function getNewChatPreset(string $entityType, int $entityId): array
+    {
+        if ($entityType === 'deal') {
+            $entityId = $this->getDealPrimaryContactId($entityId);
+        } elseif ($entityType !== 'contact') {
+            return [];
+        }
+        if ($entityId <= 0) {
+            return [];
+        }
+        $this->permissions->assertCanReadContact($entityId);
+        $row = \CCrmContact::GetListEx(
+            [],
+            ['=ID' => $entityId, 'CHECK_PERMISSIONS' => 'Y'],
+            false,
+            false,
+            ['ID', 'NAME', 'LAST_NAME']
+        )->Fetch();
+        if (!$row) {
+            return [];
+        }
+
+        $firstName = trim((string)($row['NAME'] ?? ''));
+        $lastName = trim((string)($row['LAST_NAME'] ?? ''));
+        if ($firstName === '') {
+            [$firstName, $lastName] = [$lastName, ''];
+        }
+
+        return array_filter([
+            'firstName' => mb_substr($firstName, 0, 100),
+            'lastName' => mb_substr($lastName, 0, 100),
+            'phoneNumber' => $this->firstInternationalPhone($entityId),
+        ], static fn(string $value): bool => $value !== '');
+    }
+
+    /** The deal's primary contact, or 0 when it has none. */
+    public function getDealPrimaryContactId(int $dealId): int
+    {
+        $this->getDeal($dealId);
+
+        return (int)\Bitrix\Crm\Binding\EntityBinding::getPrimaryEntityID(
+            \CCrmOwnerType::Contact,
+            DealContactTable::getDealBindings($dealId)
+        );
+    }
+
+    /** E.164 form of the first phone that has a country code; local numbers are left for the user to enter. */
+    private function firstInternationalPhone(int $contactId): string
+    {
+        $multi = \CCrmFieldMulti::GetListEx(
+            ['ID' => 'ASC'],
+            ['=ENTITY_ID' => 'CONTACT', '=ELEMENT_ID' => $contactId, '=TYPE_ID' => 'PHONE'],
+            false,
+            false,
+            ['VALUE']
+        );
+        while ($item = $multi->Fetch()) {
+            $digits = PhoneNormalizer::normalize($item['VALUE'] ?? '');
+            if (PhoneNormalizer::isValid($digits) && $digits[0] !== '0' && strlen($digits) <= 15) {
+                return '+' . $digits;
+            }
+        }
+
+        return '';
+    }
+
     public function searchContacts(string $rawQuery, int $limit = 20): array
     {
         $query = ChatValidator::searchQuery($rawQuery);

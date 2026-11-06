@@ -15,8 +15,6 @@
 
 ![Выбор компании EasyBusy](images/installation/00-choose-company.png)
 
-Запомните точное название компании. Оно потребуется при настройке модуля в Bitrix24.
-
 ## 2. Получите Client ID и Client Secret
 
 В панели выбранной компании откройте **Интеграции → Авторизация**. Скопируйте значения:
@@ -78,7 +76,6 @@ https://<BITRIX24_DOMAIN>/bitrix/admin/module_admin.php?lang=ru
 
 В настройках модуля заполните:
 
-- **Название компании EasyBusy** — точное название выбранной компании, например `EasyBusy - Sandbox`;
 - **EasyBusy Client ID** — значение из панели EasyBusy;
 - **EasyBusy Client Secret** — значение из панели EasyBusy.
 

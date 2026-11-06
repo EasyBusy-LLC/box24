@@ -33,7 +33,6 @@ if ($request->isPost() && check_bitrix_sessid()) {
     $language = trim((string)$request->getPost(Config::OPTION_DEFAULT_LANGUAGE));
     $timeout = (int)$request->getPost(Config::OPTION_REQUEST_TIMEOUT);
     $apiBaseUrl = rtrim(trim((string)$request->getPost(Config::OPTION_API_BASE_URL)), '/');
-    $companyName = trim((string)$request->getPost(Config::OPTION_COMPANY_NAME));
     $clientId = trim((string)$request->getPost('box_client_id'));
     $clientSecret = trim((string)$request->getPost('box_client_secret'));
 
@@ -51,9 +50,6 @@ if ($request->isPost() && check_bitrix_sessid()) {
     }
     if (!Config::isValidEasyBusyApiBaseUrl($apiBaseUrl)) {
         $errors[] = Loc::getMessage('EASYBUSYCHATS_OPTIONS_INVALID_API_URL');
-    }
-    if ($companyName === '' || mb_strlen($companyName) > 255) {
-        $errors[] = Loc::getMessage('EASYBUSYCHATS_OPTIONS_INVALID_COMPANY_NAME');
     }
 
     if ($errors === []) {
@@ -94,7 +90,6 @@ if ($request->isPost() && check_bitrix_sessid()) {
         );
         Option::set(Config::MODULE_ID, Config::OPTION_REQUEST_TIMEOUT, (string)$timeout);
         Option::set(Config::MODULE_ID, Config::OPTION_API_BASE_URL, $apiBaseUrl);
-        Option::set(Config::MODULE_ID, Config::OPTION_COMPANY_NAME, $companyName);
         $saved = true;
     }
 }
@@ -147,10 +142,6 @@ $tabControl->Begin();
     <tr>
         <td><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_API_BASE_URL')?>:</td>
         <td><input type="text" size="70" name="<?=Config::OPTION_API_BASE_URL?>" value="<?=htmlspecialcharsbx(Config::getEasyBusyApiBaseUrl())?>"></td>
-    </tr>
-    <tr>
-        <td><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_COMPANY_NAME')?>:</td>
-        <td><input type="text" size="40" maxlength="255" name="<?=Config::OPTION_COMPANY_NAME?>" value="<?=htmlspecialcharsbx(Config::getEasyBusyCompanyName())?>"></td>
     </tr>
     <tr class="heading">
         <td colspan="2"><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_BOX_AUTH_TITLE')?></td>

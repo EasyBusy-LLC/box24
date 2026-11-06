@@ -5,7 +5,6 @@ namespace EasyBusyChats\Installer;
 use Bitrix\Main\Application;
 use Bitrix\Main\Config\Option;
 use Bitrix\Main\DB\Connection;
-use Bitrix\Main\DB\Ddl\Builder\AlterTableBuilder;
 use EasyBusyChats\Model\ChatContactTable;
 use EasyBusyChats\Model\ChatDealTable;
 use EasyBusyChats\Model\BoxCredentialTable;
@@ -76,11 +75,13 @@ final class DatabaseInstaller
             'ix_eb_user_token_user',
             ['BITRIX_USER_ID']
         );
-        Option::set('easybusychats', 'database_schema_version', '7');
+        self::deleteLegacyFiles();
+        Option::set('easybusychats', 'database_schema_version', '9');
     }
 
     public static function uninstall(bool $deleteMappings): void
     {
+        self::deleteLegacyFiles();
         $connection = Application::getConnection();
         if ($connection->isTableExists(UserTokenTable::getTableName())) {
             $connection->dropTable(UserTokenTable::getTableName());
@@ -96,6 +97,27 @@ final class DatabaseInstaller
             if ($connection->isTableExists($tableName)) {
                 $connection->dropTable($tableName);
             }
+        }
+    }
+
+    // Earlier versions shipped these files where web servers can serve them without authentication.
+    private static function deleteLegacyFiles(): void
+    {
+        $testsDirectory = dirname(__DIR__, 2) . '/tests';
+        $paths = [
+            Application::getDocumentRoot() . '/local/logs/easybusychats.log',
+            $testsDirectory . '/access-policy-smoke.php',
+            $testsDirectory . '/phone-e2e-fixture.php',
+            $testsDirectory . '/phone-link-integration.php',
+            $testsDirectory . '/phone-normalizer.php',
+        ];
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        if (is_dir($testsDirectory)) {
+            @rmdir($testsDirectory);
         }
     }
 
@@ -133,15 +155,22 @@ final class DatabaseInstaller
         }
 
         $tableName = ChatContactTable::getTableName();
-        $field = $connection->getTableField($tableName, 'LAST_MESSAGE_AT');
-        if ($field === null) {
+        if ($connection->getTableField($tableName, 'LAST_MESSAGE_AT') === null) {
             return;
         }
-        if (!$field->isNullable()) {
-            $builder = new AlterTableBuilder($tableName);
-            $builder->modifyColumn()->datetime('LAST_MESSAGE_AT');
-            $connection->runDdl($builder);
-            $connection->clearCaches($tableName);
+        // Connection::getTableField() does not report nullability, so read it from MySQL.
+        if ($connection->getType() === 'mysql') {
+            $helper = $connection->getSqlHelper();
+            $sqlTableName = $helper->quote($tableName);
+            $column = $connection->query(
+                'SHOW COLUMNS FROM ' . $sqlTableName . " LIKE 'LAST_MESSAGE_AT'"
+            )->fetch();
+            if ($column && $column['Null'] === 'NO') {
+                $connection->queryExecute(
+                    'ALTER TABLE ' . $sqlTableName . ' MODIFY LAST_MESSAGE_AT datetime NULL'
+                );
+                $connection->clearCaches($tableName);
+            }
         }
         Option::set('easybusychats', 'database_schema_version', '2');
     }
@@ -153,23 +182,24 @@ final class DatabaseInstaller
             return;
         }
 
-        $builder = new AlterTableBuilder($tableName);
-        $builder->addColumn()->varchar('EXTERNAL_CONTACT_ID', 191);
-        $connection->runDdl($builder);
+        $connection->queryExecute(
+            'ALTER TABLE ' . $connection->getSqlHelper()->quote($tableName)
+            . ' ADD COLUMN EXTERNAL_CONTACT_ID varchar(191)'
+        );
         $connection->clearCaches($tableName);
     }
 
     private static function addLinkSource(Connection $connection): void
     {
         $tableName = ChatContactTable::getTableName();
+        $helper = $connection->getSqlHelper();
         if ($connection->getTableField($tableName, 'LINK_SOURCE') === null) {
-            $builder = new AlterTableBuilder($tableName);
-            $builder->addColumn()->varchar('LINK_SOURCE', 32);
-            $connection->runDdl($builder);
+            $connection->queryExecute(
+                'ALTER TABLE ' . $helper->quote($tableName) . ' ADD COLUMN LINK_SOURCE varchar(32)'
+            );
             $connection->clearCaches($tableName);
         }
 
-        $helper = $connection->getSqlHelper();
         $connection->queryExecute(
             'UPDATE ' . $helper->quote($tableName)
             . " SET LINK_SOURCE = 'manual' WHERE LINK_SOURCE IS NULL OR LINK_SOURCE = ''"

@@ -2,7 +2,7 @@
 
 namespace EasyBusyChats\Service;
 
-use Bitrix\Main\Diag\Debug;
+use Bitrix\Main\Web\Json;
 use EasyBusyChats\Config;
 
 final class Logger
@@ -18,7 +18,7 @@ final class Logger
             'result', 'durationMs', 'errorCode', 'requestId',
             'exceptionClass', 'exceptionLocation',
         ];
-        $safe = ['operation' => $operation, 'timestamp' => gmdate('c')];
+        $safe = [];
         foreach ($allowed as $key) {
             if (array_key_exists($key, $context)) {
                 $safe[$key] = is_scalar($context[$key]) || $context[$key] === null
@@ -27,6 +27,16 @@ final class Logger
             }
         }
 
-        Debug::writeToFile($safe, '', '/local/logs/easybusychats.log');
+        try {
+            \CEventLog::Log(
+                'DEBUG',
+                'EASYBUSYCHATS_OPERATION',
+                Config::MODULE_ID,
+                $operation,
+                Json::encode($safe)
+            );
+        } catch (\Throwable) {
+            // Diagnostics must never fail the operation being logged.
+        }
     }
 }

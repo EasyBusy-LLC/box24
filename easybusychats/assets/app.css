@@ -1,3 +1,7 @@
+#air-workarea-content:has(> #easybusy-host) {
+    padding: 0;
+}
+
 .easybusy-chats {
     display: flex;
     flex-direction: column;
@@ -17,6 +21,13 @@
 .easybusy-chats--iframe {
     height: calc(100vh - 180px);
     min-height: 620px;
+}
+
+.ui-page-slider-wrapper .easybusy-chats--iframe {
+    height: 100vh;
+    min-height: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .easybusy-chats__frame {
