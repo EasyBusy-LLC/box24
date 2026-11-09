@@ -17,6 +17,16 @@ final class Config
     public const OPTION_REQUEST_TIMEOUT = 'request_timeout';
     public const OPTION_API_BASE_URL = 'api_base_url';
 
+    // Server environment variables that take precedence over the admin settings (e.g. dev and staging).
+    public const ENV_IFRAME_URL = 'OPTION_PLUGIN_URL';
+    public const ENV_PLUGIN_ORIGIN = 'OPTION_PLUGIN_ORIGIN';
+    public const ENV_API_BASE_URL = 'OPTION_API_BASE_URL';
+    private const ENVIRONMENT_OPTIONS = [
+        self::OPTION_PLUGIN_URL => self::ENV_IFRAME_URL,
+        self::OPTION_PLUGIN_ORIGIN => self::ENV_PLUGIN_ORIGIN,
+        self::OPTION_API_BASE_URL => self::ENV_API_BASE_URL,
+    ];
+
     public static function getDefaults(): array
     {
         return [
@@ -31,39 +41,66 @@ final class Config
         ];
     }
 
-    public static function getIframeUrl(): string
+    /** Reads a variable from the process environment or, for SetEnv and FastCGI params, from $_SERVER. */
+    public static function env(string $name): string
     {
-        $environmentUrl = trim((string)getenv('EASYBUSYCHATS_IFRAME_URL'));
-        if ($environmentUrl !== '' && self::isValidPluginUrl($environmentUrl)) {
-            return $environmentUrl;
+        $value = getenv($name);
+        if ($value === false || trim($value) === '') {
+            $value = $_SERVER[$name] ?? $_ENV[$name] ?? '';
         }
 
-        $url = trim(Option::get(
-            self::MODULE_ID,
-            self::OPTION_PLUGIN_URL,
-            self::getDefaults()[self::OPTION_PLUGIN_URL]
-        ));
+        return is_string($value) ? trim($value) : '';
+    }
+
+    /** Settings fixed by the environment, as option name => variable name. */
+    public static function getEnvironmentOverrides(): array
+    {
+        $overrides = array_filter(
+            self::ENVIRONMENT_OPTIONS,
+            static fn(string $variable): bool => self::env($variable) !== ''
+        );
+        // Without its own variable, the origin follows the URL variable (see getPluginOrigin).
+        if (isset($overrides[self::OPTION_PLUGIN_URL]) && !isset($overrides[self::OPTION_PLUGIN_ORIGIN])) {
+            $overrides[self::OPTION_PLUGIN_ORIGIN] = self::ENV_IFRAME_URL;
+        }
+
+        return $overrides;
+    }
+
+    public static function getIframeUrl(): string
+    {
+        $url = self::env(self::ENV_IFRAME_URL);
+        if ($url === '') {
+            $url = trim(Option::get(
+                self::MODULE_ID,
+                self::OPTION_PLUGIN_URL,
+                self::getDefaults()[self::OPTION_PLUGIN_URL]
+            ));
+        }
 
         return self::isValidPluginUrl($url) ? $url : '';
     }
 
     public static function getPluginOrigin(): string
     {
-        $environmentOrigin = trim((string)getenv('EASYBUSYCHATS_PLUGIN_ORIGIN'));
-        if (self::isValidOrigin($environmentOrigin)) {
-            return rtrim($environmentOrigin, '/');
+        $environmentOrigin = rtrim(self::env(self::ENV_PLUGIN_ORIGIN), '/');
+        if ($environmentOrigin !== '') {
+            return self::isValidOrigin($environmentOrigin) ? $environmentOrigin : '';
         }
 
-        $configuredOrigin = trim(Option::get(self::MODULE_ID, self::OPTION_PLUGIN_ORIGIN, ''));
-        if (self::isValidOrigin($configuredOrigin)) {
-            return rtrim($configuredOrigin, '/');
+        // A stored origin belongs to the stored URL, so it is skipped when the URL comes from the environment.
+        if (self::env(self::ENV_IFRAME_URL) === '') {
+            $configuredOrigin = rtrim(trim(Option::get(self::MODULE_ID, self::OPTION_PLUGIN_ORIGIN, '')), '/');
+            if (self::isValidOrigin($configuredOrigin)) {
+                return $configuredOrigin;
+            }
         }
 
         $url = self::getIframeUrl();
         if (preg_match('~^https?://~i', $url)) {
             $parts = parse_url($url);
             if (is_array($parts) && isset($parts['scheme'], $parts['host'])) {
-                return strtolower($parts['scheme']) . '://' . $parts['host']
+                return strtolower($parts['scheme']) . '://' . strtolower($parts['host'])
                     . (isset($parts['port']) ? ':' . (int)$parts['port'] : '');
             }
         }
@@ -119,7 +156,7 @@ final class Config
 
     public static function getEasyBusyApiBaseUrl(): string
     {
-        $environmentUrl = trim((string)getenv('EASYBUSYCHATS_API_BASE_URL'));
+        $environmentUrl = self::env(self::ENV_API_BASE_URL);
         $url = $environmentUrl !== ''
             ? $environmentUrl
             : trim(Option::get(self::MODULE_ID, self::OPTION_API_BASE_URL, self::getDefaults()[self::OPTION_API_BASE_URL]));

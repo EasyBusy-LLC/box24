@@ -3,6 +3,7 @@
 namespace EasyBusyChats\Service;
 
 use Bitrix\Main\Type\DateTime;
+use EasyBusyChats\Config;
 use EasyBusyChats\Exception\IntegrationException;
 use EasyBusyChats\Model\BoxCredentialTable;
 
@@ -31,8 +32,8 @@ final class BoxCredentialService
 
     public function getCredentials(): array
     {
-        $environmentClientId = trim((string)getenv('EASYBUSYCHATS_CLIENT_ID'));
-        $environmentSecret = trim((string)getenv('EASYBUSYCHATS_CLIENT_SECRET'));
+        $environmentClientId = Config::env('EASYBUSYCHATS_CLIENT_ID');
+        $environmentSecret = Config::env('EASYBUSYCHATS_CLIENT_SECRET');
         if ($environmentClientId !== '' || $environmentSecret !== '') {
             $this->validate($environmentClientId, $environmentSecret);
 

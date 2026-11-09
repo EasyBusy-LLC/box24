@@ -26,6 +26,9 @@ $saved = false;
 $credentialService = new BoxCredentialService();
 $accessPolicy = new AccessPolicyService();
 $credentialStatus = $credentialService->getStatus();
+// Fields set by environment variables are shown read-only and keep their stored values on save.
+$environmentOverrides = Config::getEnvironmentOverrides();
+$isFromEnvironment = static fn(string $option): bool => isset($environmentOverrides[$option]);
 
 if ($request->isPost() && check_bitrix_sessid()) {
     $pluginUrl = trim((string)$request->getPost(Config::OPTION_PLUGIN_URL));
@@ -35,6 +38,16 @@ if ($request->isPost() && check_bitrix_sessid()) {
     $apiBaseUrl = rtrim(trim((string)$request->getPost(Config::OPTION_API_BASE_URL)), '/');
     $clientId = trim((string)$request->getPost('box_client_id'));
     $clientSecret = trim((string)$request->getPost('box_client_secret'));
+
+    if ($isFromEnvironment(Config::OPTION_PLUGIN_URL)) {
+        $pluginUrl = Option::get(Config::MODULE_ID, Config::OPTION_PLUGIN_URL, Config::getDefaults()[Config::OPTION_PLUGIN_URL]);
+    }
+    if ($isFromEnvironment(Config::OPTION_PLUGIN_ORIGIN)) {
+        $pluginOrigin = Option::get(Config::MODULE_ID, Config::OPTION_PLUGIN_ORIGIN, '');
+    }
+    if ($isFromEnvironment(Config::OPTION_API_BASE_URL)) {
+        $apiBaseUrl = Option::get(Config::MODULE_ID, Config::OPTION_API_BASE_URL, Config::getDefaults()[Config::OPTION_API_BASE_URL]);
+    }
 
     if (!Config::isValidPluginUrl($pluginUrl)) {
         $errors[] = Loc::getMessage('EASYBUSYCHATS_OPTIONS_INVALID_PLUGIN_URL');
@@ -118,16 +131,36 @@ $tabs = [
 $tabControl = new CAdminTabControl('easybusychatsOptions', $tabs);
 $tabControl->Begin();
 ?>
+<?php
+$renderUrlInput = static function (string $option, string $storedValue, string $effectiveValue) use ($environmentOverrides): string {
+    if (!isset($environmentOverrides[$option])) {
+        return '<input type="text" size="70" name="' . $option . '" value="' . htmlspecialcharsbx($storedValue) . '">';
+    }
+
+    return '<input type="text" size="70" value="' . htmlspecialcharsbx($effectiveValue) . '" readonly disabled>'
+        . '<div class="adm-info-message-wrap"><small>'
+        . htmlspecialcharsbx(Loc::getMessage('EASYBUSYCHATS_OPTIONS_FROM_ENVIRONMENT', ['#NAME#' => $environmentOverrides[$option]]))
+        . '</small></div>';
+};
+?>
 <form method="post" action="<?=htmlspecialcharsbx($APPLICATION->GetCurPage())?>?mid=easybusychats&amp;lang=<?=LANGUAGE_ID?>">
     <?=bitrix_sessid_post()?>
     <?php $tabControl->BeginNextTab(); ?>
     <tr>
         <td width="40%"><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_PLUGIN_URL')?>:</td>
-        <td width="60%"><input type="text" size="70" name="<?=Config::OPTION_PLUGIN_URL?>" value="<?=htmlspecialcharsbx(Config::getIframeUrl())?>"></td>
+        <td width="60%"><?=$renderUrlInput(
+            Config::OPTION_PLUGIN_URL,
+            Option::get(Config::MODULE_ID, Config::OPTION_PLUGIN_URL, Config::getDefaults()[Config::OPTION_PLUGIN_URL]),
+            Config::getIframeUrl()
+        )?></td>
     </tr>
     <tr>
         <td><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_PLUGIN_ORIGIN')?>:</td>
-        <td><input type="text" size="70" name="<?=Config::OPTION_PLUGIN_ORIGIN?>" value="<?=htmlspecialcharsbx(Option::get(Config::MODULE_ID, Config::OPTION_PLUGIN_ORIGIN, ''))?>"></td>
+        <td><?=$renderUrlInput(
+            Config::OPTION_PLUGIN_ORIGIN,
+            Option::get(Config::MODULE_ID, Config::OPTION_PLUGIN_ORIGIN, ''),
+            Config::getPluginOrigin()
+        )?></td>
     </tr>
     <tr>
         <td><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_DEFAULT_LANGUAGE')?>:</td>
@@ -141,7 +174,11 @@ $tabControl->Begin();
     </tr>
     <tr>
         <td><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_API_BASE_URL')?>:</td>
-        <td><input type="text" size="70" name="<?=Config::OPTION_API_BASE_URL?>" value="<?=htmlspecialcharsbx(Config::getEasyBusyApiBaseUrl())?>"></td>
+        <td><?=$renderUrlInput(
+            Config::OPTION_API_BASE_URL,
+            Option::get(Config::MODULE_ID, Config::OPTION_API_BASE_URL, Config::getDefaults()[Config::OPTION_API_BASE_URL]),
+            Config::getEasyBusyApiBaseUrl()
+        )?></td>
     </tr>
     <tr class="heading">
         <td colspan="2"><?=Loc::getMessage('EASYBUSYCHATS_OPTIONS_BOX_AUTH_TITLE')?></td>
