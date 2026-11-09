@@ -12,6 +12,15 @@ use EasyBusyChats\Model\UserTokenTable;
 
 final class DatabaseInstaller
 {
+    // The text columns are varchar(255) utf8mb4, so four of them exceed MySQL's 3072-byte key limit.
+    // Prefixes cover the validated sizes: chat ids up to 191 characters, UUIDs for company and account.
+    private const KEY_LENGTHS = [
+        'SITE_ID' => 10,
+        'EASYBUSY_COMPANY_ID' => 100,
+        'CHAT_ID' => 191,
+        'ACCOUNT_ID' => 100,
+    ];
+
     public static function install(): void
     {
         $connection = Application::getConnection();
@@ -23,13 +32,18 @@ final class DatabaseInstaller
         self::makeLastMessageNullable($connection);
         self::addExternalContactId($connection);
         self::addLinkSource($connection);
+        self::addDealAccountId($connection);
+        // Chats are identified per account from schema 10; the old keys would reject a second account.
+        self::dropIndex($connection, ChatContactTable::getTableName(), 'ux_eb_chat_contact_key');
+        self::dropIndex($connection, ChatDealTable::getTableName(), 'ux_eb_chat_deal_key');
 
         self::createIndex(
             $connection,
             ChatContactTable::getTableName(),
-            'ux_eb_chat_contact_key',
-            ['SITE_ID', 'EASYBUSY_COMPANY_ID', 'CHAT_ID'],
-            true
+            'ux_eb_chat_contact_account_key',
+            ['SITE_ID', 'EASYBUSY_COMPANY_ID', 'CHAT_ID', 'ACCOUNT_ID'],
+            true,
+            self::KEY_LENGTHS
         );
         self::createIndex(
             $connection,
@@ -46,9 +60,10 @@ final class DatabaseInstaller
         self::createIndex(
             $connection,
             ChatDealTable::getTableName(),
-            'ux_eb_chat_deal_key',
-            ['SITE_ID', 'EASYBUSY_COMPANY_ID', 'CHAT_ID', 'BITRIX_DEAL_ID'],
-            true
+            'ux_eb_chat_deal_account_key',
+            ['SITE_ID', 'EASYBUSY_COMPANY_ID', 'CHAT_ID', 'ACCOUNT_ID', 'BITRIX_DEAL_ID'],
+            true,
+            self::KEY_LENGTHS
         );
         self::createIndex(
             $connection,
@@ -76,7 +91,7 @@ final class DatabaseInstaller
             ['BITRIX_USER_ID']
         );
         self::deleteLegacyFiles();
-        Option::set('easybusychats', 'database_schema_version', '9');
+        Option::set('easybusychats', 'database_schema_version', '10');
     }
 
     public static function uninstall(bool $deleteMappings): void
@@ -134,14 +149,15 @@ final class DatabaseInstaller
         string $tableName,
         string $indexName,
         array $columns,
-        bool $unique = false
+        bool $unique = false,
+        ?array $lengths = null
     ): void {
         if ($connection->getIndexName($tableName, $columns, true) !== null) {
             return;
         }
 
         if ($unique) {
-            $connection->createIndex($tableName, $indexName, $columns, null, Connection::INDEX_UNIQUE);
+            $connection->createIndex($tableName, $indexName, $columns, $lengths, Connection::INDEX_UNIQUE);
             return;
         }
 
@@ -173,6 +189,43 @@ final class DatabaseInstaller
             }
         }
         Option::set('easybusychats', 'database_schema_version', '2');
+    }
+
+    private static function dropIndex(Connection $connection, string $tableName, string $indexName): void
+    {
+        $helper = $connection->getSqlHelper();
+        $exists = $connection->query(
+            'SHOW INDEX FROM ' . $helper->quote($tableName)
+            . " WHERE Key_name = '" . $helper->forSql($indexName) . "'"
+        )->fetch();
+        if ($exists) {
+            $connection->queryExecute(
+                'ALTER TABLE ' . $helper->quote($tableName) . ' DROP INDEX ' . $helper->quote($indexName)
+            );
+            $connection->clearCaches($tableName);
+        }
+    }
+
+    // Deal links get the account of their chat; before schema 10 a chat id had one contact link.
+    private static function addDealAccountId(Connection $connection): void
+    {
+        $dealTable = ChatDealTable::getTableName();
+        if ($connection->getTableField($dealTable, 'ACCOUNT_ID') !== null) {
+            return;
+        }
+
+        $helper = $connection->getSqlHelper();
+        $connection->queryExecute(
+            'ALTER TABLE ' . $helper->quote($dealTable) . ' ADD COLUMN ACCOUNT_ID varchar(191) NULL'
+        );
+        $connection->queryExecute(
+            'UPDATE ' . $helper->quote($dealTable) . ' d'
+            . ' INNER JOIN ' . $helper->quote(ChatContactTable::getTableName()) . ' c'
+            . ' ON c.SITE_ID = d.SITE_ID AND c.EASYBUSY_COMPANY_ID = d.EASYBUSY_COMPANY_ID AND c.CHAT_ID = d.CHAT_ID'
+            . ' SET d.ACCOUNT_ID = c.ACCOUNT_ID'
+            . ' WHERE d.ACCOUNT_ID IS NULL'
+        );
+        $connection->clearCaches($dealTable);
     }
 
     private static function addExternalContactId(Connection $connection): void

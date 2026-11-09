@@ -12,7 +12,7 @@ use EasyBusyChats\Installer\OptionInstaller;
 Loader::registerNamespace('EasyBusyChats', __DIR__ . '/lib');
 
 if (ModuleManager::isModuleInstalled('easybusychats')
-    && (int)Option::get('easybusychats', 'database_schema_version', '0') < 9
+    && (int)Option::get('easybusychats', 'database_schema_version', '0') < 10
 ) {
     OptionInstaller::install();
     DatabaseInstaller::install();

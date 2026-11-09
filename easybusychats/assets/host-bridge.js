@@ -17,6 +17,66 @@
     'crm:create-deal', 'crm:link-deal', 'crm:unlink-deal', 'crm:link-new-chat',
   ]);
   const LINKS_CHANGED_EVENT = 'easybusychats:links-changed';
+  // Questions the iframe may ask through ui:confirm; it names a key, the text stays here.
+  const CONFIRMS = Object.freeze({
+    'ru-RU': {
+      cancel: 'Отмена',
+      unlinkContact: { text: 'Отвязать чат от контакта и связанных сделок?', ok: 'Отвязать' },
+      unlinkDeal: { text: 'Отвязать чат от этой сделки?', ok: 'Отвязать' },
+      moveChat: { text: 'Этот чат уже связан с другим контактом. Перенести его сюда? Связи чата со сделками прежнего контакта будут удалены.', ok: 'Перенести' },
+    },
+    'en-US': {
+      cancel: 'Cancel',
+      unlinkContact: { text: 'Unlink this chat from the contact and linked deals?', ok: 'Unlink' },
+      unlinkDeal: { text: 'Unlink this chat from this deal?', ok: 'Unlink' },
+      moveChat: { text: 'This chat is already linked to another contact. Move it here? Its links to that contact\'s deals will be removed.', ok: 'Move' },
+    },
+    'uk-UA': {
+      cancel: 'Скасувати',
+      unlinkContact: { text: 'Відв’язати чат від контакту та пов’язаних угод?', ok: 'Відв’язати' },
+      unlinkDeal: { text: 'Відв’язати чат від цієї угоди?', ok: 'Відв’язати' },
+      moveChat: { text: 'Цей чат уже пов’язаний з іншим контактом. Перенести його сюди? Зв’язки чату з угодами попереднього контакту буде видалено.', ok: 'Перенести' },
+    },
+  });
+
+  // Asks with the Bitrix message box; resolves false on Cancel, Esc or closing.
+  async function confirmAction(key, language) {
+    const texts = CONFIRMS[language] || CONFIRMS['ru-RU'];
+    const entry = Object.prototype.hasOwnProperty.call(texts, key) && key !== 'cancel' ? texts[key] : null;
+    if (!entry) throw { code: 'UNKNOWN_CONFIRM', message: 'Unsupported confirmation.', retryable: false };
+    try {
+      await window.BX?.Runtime?.loadExtension?.('ui.dialogs.messagebox');
+    } catch (_) {
+      // Falls back to the browser dialog below.
+    }
+    const dialogs = window.BX?.UI?.Dialogs;
+    if (!dialogs?.MessageBox?.create || !dialogs.MessageBoxButtons) return window.confirm(entry.text);
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      dialogs.MessageBox.create({
+        message: entry.text,
+        buttons: dialogs.MessageBoxButtons.OK_CANCEL,
+        okCaption: entry.ok,
+        cancelCaption: texts.cancel,
+        onOk: () => { settle(true); return true; },
+        onCancel: () => { settle(false); return true; },
+        popupOptions: { closeByEsc: true, events: { onClose: () => settle(false) } },
+      }).show();
+    });
+  }
+
+  // Shown by Bitrix after "New chat" links the created chat to the card's record.
+  const NEW_CHAT_LINKED = Object.freeze({
+    'ru-RU': { contact: 'Чат создан и привязан к контакту.', deal: 'Чат создан и привязан к сделке.' },
+    'en-US': { contact: 'The chat was created and linked to the contact.', deal: 'The chat was created and linked to the deal.' },
+    'uk-UA': { contact: 'Чат створено та пов’язано з контактом.', deal: 'Чат створено та пов’язано з угодою.' },
+  });
   const ACTIONS = Object.freeze({
     'crm:get-context': 'getChatContext',
     'crm:search-contacts': 'searchContacts',
@@ -186,8 +246,18 @@
       return { opened: true };
     }
 
+    function notifyNewChatLinked() {
+      const texts = NEW_CHAT_LINKED[config.language] || NEW_CHAT_LINKED['ru-RU'];
+      const text = positiveId(safeObject(config.conversation).dealId) ? texts.deal : texts.contact;
+      window.BX?.UI?.Notification?.Center?.notify({ content: text, autoHideDelay: 5000 });
+    }
+
     async function runAction(type, payload) {
       if (OPEN_COMMANDS.has(type)) return handleOpen(type, payload);
+      // Waits for the user, so the iframe sends it without a timeout.
+      if (type === 'ui:confirm') return { confirmed: await confirmAction(String(payload.key || ''), config.language) };
+      // The prefill is read for the card's own record, never for one named by the iframe.
+      if (type === 'crm:get-new-chat-preset') return { preset: await newChatPreset(config.conversation) };
       if (type === 'crm:link-new-chat') {
         // The record comes from this card, never from the iframe.
         const conversation = safeObject(config.conversation);
@@ -271,6 +341,7 @@
         const payload = await runAction(String(message.type || ''), safeObject(message.payload));
         send(`${message.type}:result`, message.id, payload, null);
         if (LINK_COMMANDS.has(message.type)) window.dispatchEvent(new CustomEvent(LINKS_CHANGED_EVENT));
+        if (message.type === 'crm:link-new-chat') notifyNewChatLinked();
       } catch (error) {
         send(`${message.type}:result`, message.id, {}, normalizeError(error));
       }
@@ -281,6 +352,7 @@
   window.EasyBusyHostBridge = Object.freeze({
     init,
     requestNewChat: () => { newChatRequested = true; },
+    confirm: confirmAction,
   });
 
   if (document.readyState === 'loading') {

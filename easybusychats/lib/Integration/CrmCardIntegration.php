@@ -7,6 +7,7 @@ use Bitrix\Main\Event;
 use Bitrix\Main\EventResult;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Page\Asset;
+use Bitrix\Main\UI\Extension;
 use EasyBusyChats\Config;
 use EasyBusyChats\Exception\IntegrationException;
 use EasyBusyChats\Service\PermissionService;
@@ -66,6 +67,8 @@ final class CrmCardIntegration
         );
 
         $assets = Asset::getInstance();
+        // Toasts and confirmations in the card use the Bitrix UI dialogs.
+        Extension::load(['ui.notification', 'ui.dialogs.messagebox']);
         $assets->addCss('/local/modules/easybusychats/assets/crm-card.css');
         $assets->addJs('/local/modules/easybusychats/assets/host-bridge.js');
         $assets->addJs('/local/modules/easybusychats/assets/crm-card.js');
