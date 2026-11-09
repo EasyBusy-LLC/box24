@@ -27,3 +27,4 @@ $MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ALLOWED'] = 'Доступ';
 $MESS['EASYBUSYCHATS_OPTIONS_ACCESS_USER'] = 'Пользователь';
 $MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN'] = 'администратор';
 $MESS['EASYBUSYCHATS_OPTIONS_ACCESS_ADMIN_ALWAYS'] = 'Администраторы всегда имеют доступ';
+$MESS['EASYBUSYCHATS_OPTIONS_FROM_ENVIRONMENT'] = 'Задано переменной окружения #NAME# на сервере.';
