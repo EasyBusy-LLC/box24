@@ -98,7 +98,11 @@
         const unlink = create('button', 'ui-btn ui-btn-xs ui-btn-light-border', labels.unlink || 'Unlink');
         unlink.type = 'button';
         unlink.addEventListener('click', async () => {
-          if (!window.confirm(labels.confirmUnlink || 'Unlink this chat?')) return;
+          const key = config.entityType === 'deal' ? 'unlinkDeal' : 'unlinkContact';
+          const confirmed = window.EasyBusyHostBridge?.confirm
+            ? await window.EasyBusyHostBridge.confirm(key, config.language).catch(() => false)
+            : window.confirm(labels.confirmUnlink || 'Unlink this chat?');
+          if (!confirmed) return;
           unlink.disabled = true;
           try {
             const data = { chat: chatPayload(item) };

@@ -33,6 +33,7 @@ final class MappingService
         bool $replace = false,
         string $source = 'manual'
     ): array {
+        $this->assertAccount($chat);
         $connection = Application::getConnection();
         $connection->startTransaction();
         try {
@@ -90,6 +91,7 @@ final class MappingService
 
     public function linkDeal(string $siteId, array $chat, int $dealId, int $userId): array
     {
+        $this->assertAccount($chat);
         $key = $this->keyFilter($siteId, $chat);
         $existingContact = ChatContactTable::getList(['filter' => $key, 'limit' => 1])->fetch();
         if (!$existingContact) {
@@ -106,6 +108,7 @@ final class MappingService
                 'SITE_ID' => $siteId,
                 'EASYBUSY_COMPANY_ID' => $chat['companyId'],
                 'CHAT_ID' => $chat['chatId'],
+                'ACCOUNT_ID' => $chat['accountId'],
                 'BITRIX_DEAL_ID' => $dealId,
                 'CREATED_BY' => $userId,
                 'CREATED_AT' => $now,
@@ -151,11 +154,11 @@ final class MappingService
         $items = [];
         foreach ($dealMappings as $mapping) {
             $contact = ChatContactTable::getList([
-                'filter' => [
-                    '=SITE_ID' => $siteId,
-                    '=EASYBUSY_COMPANY_ID' => $mapping['EASYBUSY_COMPANY_ID'],
-                    '=CHAT_ID' => $mapping['CHAT_ID'],
-                ],
+                'filter' => $this->keyFilter($siteId, [
+                    'companyId' => (string)$mapping['EASYBUSY_COMPANY_ID'],
+                    'chatId' => (string)$mapping['CHAT_ID'],
+                    'accountId' => (string)($mapping['ACCOUNT_ID'] ?? ''),
+                ]),
                 'limit' => 1,
             ])->fetch();
             if ($contact) {
@@ -166,13 +169,30 @@ final class MappingService
         return $items;
     }
 
+    /**
+     * A chat id is the peer on the messenger (a Telegram user id, a phone), so the same person
+     * on two accounts has the same chat id. The account tells those chats apart. Without an
+     * account only rows saved without one match, never another account's chat.
+     */
     private function keyFilter(string $siteId, array $chat): array
     {
+        $accountId = (string)($chat['accountId'] ?? '');
+
         return [
             '=SITE_ID' => $siteId,
             '=EASYBUSY_COMPANY_ID' => $chat['companyId'],
             '=CHAT_ID' => $chat['chatId'],
+            // The contact column is NOT NULL, so rows saved without an account hold ''.
+            '=ACCOUNT_ID' => $accountId,
         ];
+    }
+
+    // New links must name the account, otherwise they could not be told apart from other accounts' chats.
+    private function assertAccount(array $chat): void
+    {
+        if ((string)($chat['accountId'] ?? '') === '') {
+            throw new IntegrationException('The chat account is missing.', 'CHAT_ACCOUNT_REQUIRED');
+        }
     }
 
     private function contactFields(

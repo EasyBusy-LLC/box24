@@ -24,6 +24,7 @@ final class ChatDealTable extends DataManager
             (new StringField('SITE_ID'))->configureRequired()->configureSize(10),
             (new StringField('EASYBUSY_COMPANY_ID'))->configureRequired()->configureSize(191),
             (new StringField('CHAT_ID'))->configureRequired()->configureSize(191),
+            (new StringField('ACCOUNT_ID'))->configureSize(191),
             (new IntegerField('BITRIX_DEAL_ID'))->configureRequired(),
             (new IntegerField('CREATED_BY'))->configureRequired(),
             (new DatetimeField('CREATED_AT'))->configureRequired(),
